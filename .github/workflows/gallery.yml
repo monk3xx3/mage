@@ -43,6 +43,7 @@ jobs:
           thumbs
           blur
           webp
+          video
         key: gallery-images-${{ hashFiles('ass/**') }}
         restore-keys: |
           gallery-images-
@@ -50,7 +51,7 @@ jobs:
     - name: Generate gallery
       run: |
         set -e
-        mkdir -p thumbs blur webp
+        mkdir -p thumbs blur webp video
 
         shopt -s nullglob
         files=(ass/*)
@@ -108,9 +109,9 @@ jobs:
               blurimg="blur/$name"
               full="ass/$name"
               ;;
-            mp4|webm|mov|mkv|avi|ogg)
+            mp4|webm|mov|ogg)
               type="video"
-              # create static thumb from video
+              # browser-compatible formats - no transcoding needed
               if [ ! -f "thumbs/$base.jpg" ]; then
                 ffmpeg -y -i "$f" -vframes 1 -vf "scale='min(600,iw)':'min(600,ih)':force_original_aspect_ratio=decrease" "thumbs/$base.jpg" 2>/dev/null || echo "ff-thumb-fail:$name"
               fi
@@ -120,6 +121,22 @@ jobs:
               thumb="thumbs/$base.jpg"
               blurimg="blur/$base.jpg"
               full="ass/$name"
+              ;;
+            mkv|avi)
+              type="video"
+              # non-browser formats - transcode to MP4 for web playback
+              if [ ! -f "video/$base.mp4" ]; then
+                ffmpeg -i "$f" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-transcode-fail:$name"
+              fi
+              if [ ! -f "thumbs/$base.jpg" ]; then
+                ffmpeg -y -i "$f" -vframes 1 -vf "scale='min(600,iw)':'min(600,ih)':force_original_aspect_ratio=decrease" "thumbs/$base.jpg" 2>/dev/null || echo "ff-thumb-fail:$name"
+              fi
+              if [ ! -f "blur/$base.jpg" ]; then
+                convert "thumbs/$base.jpg" -resize 40x40 -blur 0x6 "blur/$base.jpg" || echo "blur-fail:$name"
+              fi
+              thumb="thumbs/$base.jpg"
+              blurimg="blur/$base.jpg"
+              full="video/$base.mp4"
               ;;
             *)
               # unknown: treat as image fallback
@@ -157,7 +174,7 @@ jobs:
       run: |
         git config user.name "gallery-bot"
         git config user.email "bot@example.com"
-        git add thumbs blur webp gallery.json
+        git add thumbs blur webp video gallery.json
         git diff --staged --quiet && echo "No changes to commit" || {
           git commit -m "update gallery"
           git push
