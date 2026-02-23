@@ -3,104 +3,338 @@
 <head>
 <meta charset="UTF-8">
 <title>Gallery</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
 <style>
-body { margin:0; background:#0b0b0b; color:#eee; font-family:system-ui }
-
-.grid {
-  column-count:4;
-  column-gap:8px;
-  padding:10px;
+:root{
+  --bg:#0b0b0b;
+  --card-gap:8px;
+  --thumb-radius:8px;
+  --meta-bg: rgba(0,0,0,0.55);
+  --meta-color: #eee;
+  --meta-pad:6px 8px;
+}
+*{box-sizing:border-box}
+body {
+  margin:0;
+  background:var(--bg);
+  color:#eee;
+  font-family:system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial;
+  -webkit-font-smoothing:antialiased;
+  -moz-osx-font-smoothing:grayscale;
+  overflow-y: auto;
+  height:100vh;
 }
 
-@media (max-width:1200px){ .grid{ column-count:3 } }
-@media (max-width:800px){ .grid{ column-count:2 } }
-@media (max-width:500px){ .grid{ column-count:1 } }
+/* masonry-ish columns */
+.grid {
+  column-gap: var(--card-gap);
+  padding:12px;
+  width:100%;
+}
+
+/* responsive column counts */
+@media (min-width:1600px) { .grid { column-count:5 } }
+@media (min-width:1200px) and (max-width:1599px) { .grid { column-count:4 } }
+@media (min-width:900px)  and (max-width:1199px) { .grid { column-count:3 } }
+@media (min-width:600px)  and (max-width:899px)  { .grid { column-count:2 } }
+@media (max-width:599px)  { .grid { column-count:1 } }
 
 .card {
-  break-inside:avoid;
-  margin-bottom:8px;
-  position:relative;
+  break-inside: avoid;
+  margin-bottom: var(--card-gap);
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--thumb-radius);
+  background:#0e0e0e;
 }
 
-.card img {
+/* media elements (img / video) */
+.card img,
+.card video {
   width:100%;
-  border-radius:8px;
-  cursor:pointer;
-  background:#111;
-  transition:.3s;
+  height:auto;
+  display:block;
+  border-radius: var(--thumb-radius);
+  background: #111;
+  transition: transform .25s ease, filter .25s ease;
+  transform-origin: center;
 }
 
+/* subtle hover zoom */
+.card:hover img,
+.card:hover video { transform: scale(1.02) }
+
+/* meta overlay visible on hover */
+.meta {
+  position: absolute;
+  left: 8px;
+  right: 8px;
+  bottom: 8px;
+  display:flex;
+  justify-content:space-between;
+  gap:8px;
+  align-items:center;
+  padding: var(--meta-pad);
+  border-radius: 6px;
+  color: var(--meta-color);
+  background: linear-gradient(180deg, rgba(0,0,0,0) 0%, var(--meta-bg) 100%);
+  opacity: 0;
+  font-size: 13px;
+  pointer-events: none;
+  transition: opacity .22s ease;
+}
+
+/* show on hover */
+.card:hover .meta { opacity: 1; pointer-events: auto; }
+
+/* very small muted label style */
+.meta .name { text-overflow: ellipsis; white-space: nowrap; overflow: hidden; max-width:70%; }
+.meta .size { opacity: .9; font-variant-numeric: tabular-nums; }
+
+/* viewer modal */
 .viewer {
-  position:fixed;
+  position: fixed;
   inset:0;
-  background:rgba(0,0,0,.95);
+  background: rgba(0,0,0,0.93);
   display:none;
   align-items:center;
   justify-content:center;
+  z-index:9999;
 }
-
-.viewer img {
+.viewer .inner {
   max-width:95%;
   max-height:95%;
 }
-</style>
+.viewer img, .viewer video {
+  width:auto;
+  max-width:100%;
+  max-height:100%;
+  display:block;
+}
+.close-hint {
+  position:fixed;
+  top:12px;
+  left:12px;
+  color:#ddd;
+  font-size:13px;
+  opacity: .9;
+  z-index:10000;
+}
 
+/* small bit of spacing at bottom so autoplay can scroll to end */
+#bottom-spacer { height: 200px; }
+</style>
 </head>
 <body>
 
-<div class="grid" id="grid"></div>
+<div class="grid" id="grid" aria-live="polite"></div>
+<div id="bottom-spacer"></div>
 
-<div class="viewer" id="viewer">
-  <img id="full">
+<div class="viewer" id="viewer" role="dialog" aria-hidden="true">
+  <div class="close-hint" id="hint">click anywhere to close • esc</div>
+  <div class="inner" id="inner"></div>
 </div>
 
 <script>
-let page=0
-const perPage=40
-let files=[]
+/* --- helpers --- */
+const humanSize = n => {
+  if (n === undefined || n === null) return '';
+  const i = n === 0 ? 0 : Math.floor(Math.log(n) / Math.log(1024));
+  const sizes = ['B','KB','MB','GB','TB'];
+  return (n / Math.pow(1024, i)).toFixed(i ? 1 : 0) + ' ' + sizes[i];
+};
 
+const ext = name => name.split('.').pop().toLowerCase();
+
+/* --- state --- */
+let files = [];
+let page = 0;
+const perPage = 40;
+
+/* fetch gallery (new richer schema) */
 fetch('gallery.json')
-.then(r=>r.json())
-.then(data=>{
-  files=data.sort((a,b)=> new Date(b.date)-new Date(a.date))
-  loadMore()
+.then(r => r.json())
+.then(arr => {
+  // sort newest first using date if available
+  files = arr.slice().sort((a,b) => new Date(b.date) - new Date(a.date));
+  loadMore();
+  // start immersive auto-scroll after small idle period
+  setTimeout(enableAutoScroll, 1800);
 })
+.catch(e => {
+  console.error('failed to load gallery.json', e);
+});
 
-function loadMore(){
-  const grid=document.getElementById('grid')
-  const slice=files.slice(page*perPage,(page+1)*perPage)
+/* create a card for an entry */
+function createCard(entry){
+  const div = document.createElement('div');
+  div.className = 'card';
+  div.tabIndex = 0;
 
-  slice.forEach(f=>{
-    const div=document.createElement('div')
-    div.className='card'
+  const type = entry.type || detectType(entry.name);
 
-    const img=document.createElement('img')
-    img.loading='lazy'
-    img.src='blur/'+f.name
-    img.dataset.src='thumbs/'+f.name
-
-    img.onload=()=> img.src=img.dataset.src
-
-    img.onclick=()=>{
-      viewer.style.display='flex'
-      full.src='webp/'+f.name.replace(/\.\w+$/,'.webp')
-    }
-
-    div.appendChild(img)
-    grid.appendChild(div)
-  })
-
-  page++
-}
-
-window.onscroll=()=>{
-  if(window.innerHeight+window.scrollY>=document.body.offsetHeight-800){
-    loadMore()
+  if (type === 'video'){
+    const vid = document.createElement('video');
+    vid.muted = true;
+    vid.autoplay = true;
+    vid.loop = true;
+    vid.playsInline = true;
+    vid.preload = 'metadata';
+    // poster: use blur or thumb if available
+    if (entry.blur) vid.poster = entry.blur;
+    vid.src = entry.full; // play original video file (ass/*)
+    vid.setAttribute('aria-label', entry.name);
+    div.appendChild(vid);
+  } else {
+    // images and gifs
+    const img = document.createElement('img');
+    img.loading = 'lazy';
+    // load tiny blur first, then swap to thumb
+    img.src = entry.blur || (entry.thumb || entry.full);
+    if (entry.thumb) img.dataset.src = entry.thumb;
+    // when blur loads, replace with thumb for clearer image
+    img.addEventListener('load', () => {
+      if (img.dataset.src) {
+        const t = new Image();
+        t.src = img.dataset.src;
+        t.onload = () => { img.src = img.dataset.src; }
+      }
+    });
+    img.alt = entry.name;
+    div.appendChild(img);
   }
+
+  // meta overlay: left name, right size
+  const meta = document.createElement('div');
+  meta.className = 'meta';
+  const left = document.createElement('div');
+  left.className = 'name';
+  left.textContent = entry.name;
+  const right = document.createElement('div');
+  right.className = 'size';
+  right.textContent = humanSize(entry.size);
+  meta.appendChild(left);
+  meta.appendChild(right);
+  div.appendChild(meta);
+
+  // click => open viewer
+  div.addEventListener('click', (e)=>{
+    openViewer(entry);
+    e.stopPropagation();
+  });
+
+  return div;
 }
 
-viewer.onclick=()=>viewer.style.display='none'
+/* detect simple type by extension */
+function detectType(name){
+  const e = ext(name);
+  if (['mp4','webm','mov','mkv','avi','ogg'].includes(e)) return 'video';
+  if (['gif'].includes(e)) return 'gif';
+  return 'image';
+}
+
+/* render next page (infinite scroll) */
+function loadMore(){
+  const grid = document.getElementById('grid');
+  const slice = files.slice(page*perPage, (page+1)*perPage);
+  slice.forEach(f => grid.appendChild(createCard(f)));
+  page++;
+}
+
+/* auto-load more when near bottom */
+window.addEventListener('scroll', () => {
+  if (window.innerHeight + window.scrollY >= document.body.offsetHeight - 900){
+    loadMore();
+  }
+  // any user scroll interaction should pause auto-scroll
+  userInteracted();
+});
+
+/* viewer */
+const viewer = document.getElementById('viewer');
+const inner = document.getElementById('inner');
+
+function openViewer(entry){
+  inner.innerHTML = '';
+  const t = entry.type || detectType(entry.name);
+  if (t === 'video'){
+    const v = document.createElement('video');
+    v.controls = true;
+    v.autoplay = true;
+    v.playsInline = true;
+    v.src = entry.full;
+    v.style.maxWidth='100%';
+    v.style.maxHeight='100%';
+    inner.appendChild(v);
+  } else {
+    const im = document.createElement('img');
+    im.src = entry.full;
+    im.alt = entry.name;
+    inner.appendChild(im);
+  }
+  viewer.style.display = 'flex';
+  viewer.setAttribute('aria-hidden', 'false');
+}
+
+/* close viewer on click or esc */
+viewer.addEventListener('click', ()=>{ viewer.style.display='none'; viewer.setAttribute('aria-hidden','true'); inner.innerHTML='';});
+window.addEventListener('keydown', e => { if (e.key === 'Escape') { viewer.style.display='none'; viewer.setAttribute('aria-hidden','true'); inner.innerHTML=''; }});
+
+/* ----------------
+   IMMERSIVE AUTO-SCROLL (very slow, pauses on interaction)
+   ---------------- */
+let autoScrolling = false;
+let scrollDir = 1; // 1 down, -1 up
+let scrollSpeed = 0.15; // px per frame ~ very slow
+let rafId = null;
+let lastUser = Date.now();
+const idleTimeout = 3500; // ms to wait before resuming auto-scroll
+
+function autoFrame(){
+  // small step
+  window.scrollBy(0, scrollDir * scrollSpeed);
+  // reverse at ends
+  if (window.scrollY <= 0) scrollDir = 1;
+  if (window.scrollY + window.innerHeight >= document.body.scrollHeight - 2) scrollDir = -1;
+  rafId = requestAnimationFrame(autoFrame);
+}
+
+function enableAutoScroll(){
+  if (autoScrolling) return;
+  autoScrolling = true;
+  rafId = requestAnimationFrame(autoFrame);
+}
+
+function disableAutoScroll(){
+  autoScrolling = false;
+  if (rafId) cancelAnimationFrame(rafId);
+  rafId = null;
+}
+
+/* detect user interaction and pause auto-scroll temporarily */
+function userInteracted(){
+  lastUser = Date.now();
+  if (autoScrolling) disableAutoScroll();
+  // resume after idleTimeout
+  clearTimeout(window._resumeAuto);
+  window._resumeAuto = setTimeout(() => {
+    // only resume if user hasn't interacted since
+    if (Date.now() - lastUser >= idleTimeout) enableAutoScroll();
+  }, idleTimeout + 100);
+}
+
+/* listen to many interaction events */
+['wheel','touchstart','keydown','mousedown','mousemove','pointerdown'].forEach(e =>
+  window.addEventListener(e, userInteracted, {passive:true})
+);
+
+/* start/stop when page hidden */
+document.addEventListener('visibilitychange', ()=>{
+  if (document.hidden) disableAutoScroll();
+  else if (Date.now() - lastUser >= idleTimeout) enableAutoScroll();
+});
 </script>
 
 </body>

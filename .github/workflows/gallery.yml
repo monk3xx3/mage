@@ -27,13 +27,13 @@ jobs:
       with:
         path: |
           /var/cache/apt/archives
-        key: ${{ runner.os }}-apt-imagemagick-exiftool
+        key: ${{ runner.os }}-apt-imagemagick-exiftool-ffmpeg
 
     - name: Install tools
       if: steps.cache-apt.outputs.cache-hit != 'true'
       run: |
         sudo apt-get update
-        sudo apt-get install -y imagemagick libimage-exiftool-perl jq
+        sudo apt-get install -y imagemagick libimage-exiftool-perl jq ffmpeg
 
     - name: Restore generated images cache
       uses: actions/cache@v4
@@ -50,10 +50,8 @@ jobs:
     - name: Generate gallery
       run: |
         set -e
-        
         mkdir -p thumbs blur webp
-        
-        # Check if ass directory has files
+
         shopt -s nullglob
         files=(ass/*)
         if [ ${#files[@]} -eq 0 ]; then
@@ -61,41 +59,98 @@ jobs:
           echo "[]" > gallery.json
           exit 0
         fi
-        
-        # Build JSON array using jq for proper escaping
+
         entries=()
         for f in "${files[@]}"; do
           [ -f "$f" ] || continue
-          
           name=$(basename "$f")
           base="${name%.*}"
-          
-          # Skip if all outputs already exist (from cache)
-          if [ -f "thumbs/$name" ] && [ -f "blur/$name" ] && [ -f "webp/$base.webp" ]; then
-            echo "Skipping (cached): $name"
-          else
-            echo "Processing: $name"
-            
-            # Convert images with error handling
-            convert "$f" -resize 600x600 "thumbs/$name" || echo "Warning: Failed to create thumb for $name"
-            convert "$f" -resize 30x30 -blur 0x8 "blur/$name" || echo "Warning: Failed to create blur for $name"
-            convert "$f" -quality 80 "webp/$base.webp" || echo "Warning: Failed to create webp for $name"
-          fi
-          
-          # Get date from EXIF or file modification time
-          date=$(exiftool -DateTimeOriginal -d "%Y-%m-%dT%H:%M:%S" -s3 "$f" 2>/dev/null)
+          lc="${name##*.}"
+          lc="${lc,,}"  # lowercase extension
+
+          # get size in bytes
+          size=$(stat -c%s "$f" 2>/dev/null || wc -c < "$f" || echo 0)
+
+          # get date from EXIF or file mtime
+          date=$(exiftool -DateTimeOriginal -d "%Y-%m-%dT%H:%M:%S" -s3 "$f" 2>/dev/null || true)
           if [ -z "$date" ]; then
             date=$(date -r "$f" +"%Y-%m-%dT%H:%M:%S")
           fi
-          
-          # Use jq for proper JSON escaping
-          entry=$(jq -n -c --arg name "$name" --arg date "$date" '{"name": $name, "date": $date}')
+
+          # choose processing path by type
+          case "$lc" in
+            jpg|jpeg|png|webp|bmp|tiff)
+              type="image"
+              # create thumb + blur + webp full
+              if [ ! -f "thumbs/$name" ]; then
+                convert "$f" -strip -resize 600x600\> "thumbs/$name" || echo "thumb-fail:$name"
+              fi
+              if [ ! -f "blur/$name" ]; then
+                convert "$f" -strip -resize 40x40 -blur 0x6 "blur/$name" || echo "blur-fail:$name"
+              fi
+              if [ ! -f "webp/$base.webp" ]; then
+                convert "$f" -strip -quality 80 "webp/$base.webp" || echo "webp-fail:$name"
+              fi
+              thumb="thumbs/$name"
+              blurimg="blur/$name"
+              full="webp/$base.webp"
+              ;;
+            gif)
+              type="gif"
+              # keep gif as full (animated)
+              if [ ! -f "thumbs/$name" ]; then
+                convert "$f[0]" -strip -resize 600x600\> "thumbs/$name" || echo "thumb-fail:$name"
+              fi
+              if [ ! -f "blur/$name" ]; then
+                convert "$f[0]" -strip -resize 40x40 -blur 0x6 "blur/$name" || echo "blur-fail:$name"
+              fi
+              thumb="thumbs/$name"
+              blurimg="blur/$name"
+              full="ass/$name"
+              ;;
+            mp4|webm|mov|mkv|avi|ogg)
+              type="video"
+              # create static thumb from video
+              if [ ! -f "thumbs/$base.jpg" ]; then
+                ffmpeg -y -i "$f" -vframes 1 -vf "scale='min(600,iw)':'min(600,ih)':force_original_aspect_ratio=decrease" "thumbs/$base.jpg" 2>/dev/null || echo "ff-thumb-fail:$name"
+              fi
+              if [ ! -f "blur/$base.jpg" ]; then
+                convert "thumbs/$base.jpg" -resize 40x40 -blur 0x6 "blur/$base.jpg" || echo "blur-fail:$name"
+              fi
+              thumb="thumbs/$base.jpg"
+              blurimg="blur/$base.jpg"
+              full="ass/$name"
+              ;;
+            *)
+              # unknown: treat as image fallback
+              type="image"
+              if [ ! -f "thumbs/$name" ]; then
+                convert "$f" -strip -resize 600x600\> "thumbs/$name" || echo "thumb-fail:$name"
+              fi
+              if [ ! -f "blur/$name" ]; then
+                convert "$f" -strip -resize 40x40 -blur 0x6 "blur/$name" || echo "blur-fail:$name"
+              fi
+              thumb="thumbs/$name"
+              blurimg="blur/$name"
+              full="ass/$name"
+              ;;
+          esac
+
+          # proper JSON escaping using jq
+          entry=$(jq -n \
+            --arg name "$name" \
+            --arg date "$date" \
+            --argjson size "$size" \
+            --arg type "$type" \
+            --arg thumb "$thumb" \
+            --arg blur "$blurimg" \
+            --arg full "$full" \
+            '{name:$name, date:$date, size:$size, type:$type, thumb:$thumb, blur:$blur, full:$full}')
           entries+=("$entry")
         done
-        
-        # Create final JSON array
+
+        # push array to gallery.json
         printf '%s\n' "${entries[@]}" | jq -s '.' > gallery.json
-        
         echo "Generated gallery.json with $(jq 'length' gallery.json) entries"
 
     - name: Commit
