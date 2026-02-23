@@ -13,33 +13,39 @@ jobs:
     - uses: actions/checkout@v4
 
     - name: Install tools
-      run: sudo apt-get install -y imagemagick jq
+      run: sudo apt-get install -y imagemagick exiftool jq
 
-    - name: Create thumbs
+    - name: Generate gallery
       run: |
-        mkdir -p thumbs
-        rm -f gallery.json
-        echo "[" >> gallery.json
-
+        mkdir -p thumbs blur webp
+        echo "[" > gallery.json
         first=true
+
         for f in ass/*; do
           name=$(basename "$f")
-          convert "$f" -resize 400x400 "thumbs/$name"
+          base="${name%.*}"
+
+          convert "$f" -resize 600x600 "thumbs/$name"
+          convert "$f" -resize 30x30 -blur 0x8 "blur/$name"
+          convert "$f" -quality 80 "webp/$base.webp"
+
+          date=$(exiftool -DateTimeOriginal -d "%Y-%m-%dT%H:%M:%S" -s3 "$f")
+          if [ -z "$date" ]; then date=$(date -r "$f" +"%Y-%m-%dT%H:%M:%S"); fi
 
           if [ "$first" = true ]; then
-            echo "\"$name\"" >> gallery.json
+            echo "{\"name\":\"$name\",\"date\":\"$date\"}" >> gallery.json
             first=false
           else
-            echo ",\"$name\"" >> gallery.json
+            echo ",{\"name\":\"$name\",\"date\":\"$date\"}" >> gallery.json
           fi
         done
 
         echo "]" >> gallery.json
 
-    - name: Commit results
+    - name: Commit
       run: |
         git config user.name "gallery-bot"
         git config user.email "bot@example.com"
-        git add thumbs gallery.json
+        git add thumbs blur webp gallery.json
         git commit -m "update gallery" || echo "no changes"
         git push
