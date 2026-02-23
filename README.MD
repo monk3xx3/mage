@@ -12,13 +12,27 @@ This project is designed to:
 
 ---
 
+# ✨ Features
+
+- **Automatic media processing** on push to `ass/` directory
+- **Support for images** (JPEG, PNG, WebP, BMP, TIFF, etc.)
+- **GIF support** with automatic conversion to MP4 for 80-90% size reduction
+- **Video support** (MP4, WebM, MKV, AVI, MOV, OGG)
+- **20MB file size limit** for Cloudflare Pages compatibility
+- **Automatic compression** for oversized files
+- **MKV/AVI transcoding** to browser-compatible MP4
+- **Original file deletion** after processing to keep repo clean
+
+---
+
 # 🧠 High-Level Architecture
 
 ```
-ass/            → original media (images + small videos only)
-thumbs/         → generated thumbnails
-blur/           → tiny blurred previews
-webp/           → optimized images
+ass/            → original media (deleted after processing)
+thumbs/         → generated thumbnails (600x600 max)
+blur/           → tiny blurred previews (40x40)
+webp/           → optimized images (WebP format)
+video/          → all videos (MP4 format)
 gallery.json    → metadata index
 index.html      → gallery UI
 .github/workflows/gallery.yml → automation pipeline
@@ -32,7 +46,19 @@ Push media → GitHub Action runs → thumbnails + metadata generated → Cloudf
 
 ---
 
-# 📂 Folder Structure
+# 📂 Directory Structure
+
+| Directory | Purpose | Max Size |
+|-----------|---------|----------|
+| `ass/` | Source media files (deleted after processing) | 20MB |
+| `thumbs/` | Thumbnails (600x600 max) | Small |
+| `blur/` | Blur placeholders (40x40) | Tiny |
+| `webp/` | Compressed images (WebP format) | Optimized |
+| `video/` | All videos (MP4 format) | <20MB |
+
+---
+
+# 📂 Folder Details
 
 ## `/ass`
 
@@ -40,18 +66,19 @@ Contains original media files.
 
 Allowed:
 
-* Images (jpg, png, webp, jpeg)
-* GIFs
-* SMALL videos (< 25 MB)
+* Images (jpg, png, webp, jpeg, bmp, tiff)
+* GIFs (converted to MP4 automatically)
+* Videos (mp4, webm, mkv, mov, avi, ogg)
 
-⚠️ Cloudflare Pages has a **hard limit of 25 MB per file**
-Any file larger will break deployment.
+⚠️ **20MB file size limit** — Files exceeding this will be compressed or skipped.
+
+**Note:** Files in `ass/` are automatically deleted after successful processing.
 
 ---
 
 ## `/thumbs`
 
-Auto-generated preview images.
+Auto-generated preview images (max 600x600 pixels).
 
 Safe to delete — will regenerate automatically.
 
@@ -59,7 +86,7 @@ Safe to delete — will regenerate automatically.
 
 ## `/blur`
 
-Tiny blurred placeholders for progressive loading.
+Tiny blurred placeholders (40x40) for progressive loading.
 
 Safe to delete — will regenerate automatically.
 
@@ -67,7 +94,19 @@ Safe to delete — will regenerate automatically.
 
 ## `/webp`
 
-Optimized full-resolution images.
+Optimized full-resolution images in WebP format.
+
+Safe to delete — will regenerate automatically.
+
+---
+
+## `/video`
+
+All processed videos in MP4 format.
+
+- GIFs are converted here for 80-90% size reduction
+- MKV/AVI files are transcoded to browser-compatible MP4
+- Oversized videos are automatically compressed
 
 Safe to delete — will regenerate automatically.
 
@@ -115,17 +154,23 @@ Defined in:
 .github/workflows/gallery.yml
 ```
 
-Triggered when files change in `/ass`.
+**Triggers:**
+- Push to `ass/` directory on `main` branch
+- Manual trigger from Actions tab (workflow_dispatch)
 
 Pipeline does:
 
 1. Detect media type
-2. Generate thumbnails
-3. Create blur previews
+2. Generate thumbnails (600x600 max)
+3. Create blur previews (40x40)
 4. Convert images to WebP
-5. Extract EXIF dates
-6. Generate gallery.json
-7. Commit generated assets
+5. Convert GIFs to MP4 (80-90% smaller)
+6. Transcode MKV/AVI to MP4
+7. Compress oversized videos
+8. Extract EXIF dates
+9. Generate gallery.json
+10. Delete processed originals from `ass/`
+11. Commit generated assets
 
 ---
 
@@ -146,7 +191,12 @@ Videos:
 * open with controls in viewer
 * thumbnail extracted automatically
 
-⚠️ Videos MUST be under 25 MB if stored in repo.
+**Processing:**
+- Files under 20MB: transcoded to MP4 for consistency
+- Files over 20MB: compressed with CRF 28, then CRF 32 + 720p downscale if needed
+- MKV/AVI: always transcoded to browser-compatible MP4
+
+⚠️ Videos that cannot be compressed under 20MB will be skipped.
 
 ---
 
@@ -164,6 +214,11 @@ Videos:
 * Recommended repo size: < 5–8 GB
 * Large files increase clone time
 * Git history keeps deleted files
+
+## This Project
+
+* **20MB limit** per processed file (safety margin under Cloudflare's 25MB)
+* All processed files guaranteed under 20MB
 
 ---
 
@@ -190,12 +245,14 @@ To reduce bandwidth:
 
 ### GIF
 
-* kept as original animated file
+* converted to MP4 for 80-90% size reduction
+* thumbnail extracted from first frame
 
 ### Video
 
-* thumbnail extracted
-* original file used
+* mp4, webm, mov, ogg — transcoded to MP4
+* mkv, avi — transcoded to browser-compatible MP4
+* thumbnail extracted automatically
 
 ---
 
@@ -204,10 +261,21 @@ To reduce bandwidth:
 ## Add new media
 
 ```
-Add file → commit → push
+Add file to ass/ → commit → push
 ```
 
-GitHub Action will process automatically.
+GitHub Action will process automatically and delete the original.
+
+---
+
+## Manual Trigger
+
+The workflow can be manually triggered from the **Actions** tab in GitHub:
+
+1. Go to Actions tab
+2. Select "Build Gallery" workflow
+3. Click "Run workflow"
+4. Select branch and run
 
 ---
 
@@ -219,6 +287,7 @@ Delete folders:
 thumbs/
 blur/
 webp/
+video/
 ```
 
 Commit + push → pipeline rebuilds.
@@ -260,6 +329,17 @@ Check GitHub Actions logs.
 
 Cloudflare may cache.
 Wait ~1 minute or hard refresh.
+
+---
+
+## Video skipped during processing
+
+Cause: Video could not be compressed under 20MB
+
+Solution:
+* Use a smaller source file
+* Pre-compress the video locally
+* Host video externally
 
 ---
 
@@ -327,7 +407,7 @@ If modifying pipeline:
 
 Always ensure:
 
-* generated files stay small
+* generated files stay under 20MB
 * no large files copied to output
 * JSON schema remains consistent
 
@@ -337,9 +417,10 @@ Always ensure:
 
 * GitHub (storage + automation)
 * Cloudflare Pages (hosting + CDN)
-* ImageMagick (processing)
-* FFmpeg (video thumbnails)
+* ImageMagick (image processing)
+* FFmpeg (video processing + transcoding)
 * EXIFTool (metadata)
+* jq (JSON generation)
 * Vanilla JS frontend
 
 ---
