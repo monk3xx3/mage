@@ -1,7 +1,7 @@
 [
   {
     "name": "20250916_000608 (1).webp",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 118296,
     "type": "image",
     "thumb": "thumbs/20250916_000608 (1).webp",
@@ -10,7 +10,7 @@
   },
   {
     "name": "589904847_18007918220821573_8987770711710676968_n.webp",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 53336,
     "type": "image",
     "thumb": "thumbs/589904847_18007918220821573_8987770711710676968_n.webp",
@@ -19,7 +19,7 @@
   },
   {
     "name": "5amtm8pla2bg1.jpeg",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 1204188,
     "type": "image",
     "thumb": "thumbs/5amtm8pla2bg1.jpeg",
@@ -28,7 +28,7 @@
   },
   {
     "name": "671e548a-7d38-45d6-8620-37b2e0475826.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 7084930,
     "type": "image",
     "thumb": "thumbs/671e548a-7d38-45d6-8620-37b2e0475826.png",
@@ -37,7 +37,7 @@
   },
   {
     "name": "G6XhJ2XagAEhGYW.jpeg",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 579794,
     "type": "image",
     "thumb": "thumbs/G6XhJ2XagAEhGYW.jpeg",
@@ -46,7 +46,7 @@
   },
   {
     "name": "G6XtBQpawAENeBq.jpeg",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 68253,
     "type": "image",
     "thumb": "thumbs/G6XtBQpawAENeBq.jpeg",
@@ -54,8 +54,26 @@
     "full": "webp/G6XtBQpawAENeBq.webp"
   },
   {
+    "name": "Maison_Ikkoku_Ending.mkv",
+    "date": "2026-02-23T16:17:47",
+    "size": 12182520,
+    "type": "video",
+    "thumb": "thumbs/Maison_Ikkoku_Ending.jpg",
+    "blur": "blur/Maison_Ikkoku_Ending.jpg",
+    "full": "video/Maison_Ikkoku_Ending.mp4"
+  },
+  {
+    "name": "Maison_Ikkoku_Opening.mkv",
+    "date": "2026-02-23T16:17:47",
+    "size": 29216552,
+    "type": "video",
+    "thumb": "thumbs/Maison_Ikkoku_Opening.jpg",
+    "blur": "blur/Maison_Ikkoku_Opening.jpg",
+    "full": "video/Maison_Ikkoku_Opening.mp4"
+  },
+  {
     "name": "Screenshot 2026-02-20 221651.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 55838,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-20 221651.png",
@@ -64,7 +82,7 @@
   },
   {
     "name": "Screenshot 2026-02-20 221657.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 73034,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-20 221657.png",
@@ -73,7 +91,7 @@
   },
   {
     "name": "Screenshot 2026-02-20 221705.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 70503,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-20 221705.png",
@@ -82,7 +100,7 @@
   },
   {
     "name": "Screenshot 2026-02-21 222010.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 119093,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-21 222010.png",
@@ -91,7 +109,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 100649.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 299071,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 100649.png",
@@ -100,7 +118,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231241.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 53735,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231241.png",
@@ -109,7 +127,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231256.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 50881,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231256.png",
@@ -118,7 +136,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231302.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 44972,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231302.png",
@@ -127,7 +145,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231306.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 31103,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231306.png",
@@ -136,7 +154,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231313.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 48436,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231313.png",
@@ -145,7 +163,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231322.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 50351,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231322.png",
@@ -154,7 +172,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231331.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 50576,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231331.png",
@@ -163,7 +181,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231641.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 62493,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231641.png",
@@ -172,7 +190,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231648.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 60182,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231648.png",
@@ -181,7 +199,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231656.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 65206,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231656.png",
@@ -190,7 +208,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231707.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 44264,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231707.png",
@@ -199,7 +217,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231721.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 31477,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231721.png",
@@ -208,7 +226,7 @@
   },
   {
     "name": "Screenshot 2026-02-22 231733.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 58251,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-22 231733.png",
@@ -217,7 +235,7 @@
   },
   {
     "name": "Screenshot 2026-02-23 034555.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 96911,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-23 034555.png",
@@ -226,7 +244,7 @@
   },
   {
     "name": "Screenshot 2026-02-23 071130.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 17543,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-23 071130.png",
@@ -235,7 +253,7 @@
   },
   {
     "name": "Screenshot 2026-02-23 072828.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 28128,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-23 072828.png",
@@ -244,7 +262,7 @@
   },
   {
     "name": "Screenshot 2026-02-23 151140.png",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 78846,
     "type": "image",
     "thumb": "thumbs/Screenshot 2026-02-23 151140.png",
@@ -253,7 +271,7 @@
   },
   {
     "name": "anime-glitchcore-pfp-04.jpg",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 88361,
     "type": "image",
     "thumb": "thumbs/anime-glitchcore-pfp-04.jpg",
@@ -262,34 +280,34 @@
   },
   {
     "name": "cat-confused.gif",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 91996,
-    "type": "gif",
-    "thumb": "thumbs/cat-confused.gif",
-    "blur": "blur/cat-confused.gif",
-    "full": "ass/cat-confused.gif"
+    "type": "video",
+    "thumb": "thumbs/cat-confused.jpg",
+    "blur": "blur/cat-confused.jpg",
+    "full": "video/cat-confused.mp4"
   },
   {
     "name": "cat-lets-talk.gif",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 1415003,
-    "type": "gif",
-    "thumb": "thumbs/cat-lets-talk.gif",
-    "blur": "blur/cat-lets-talk.gif",
-    "full": "ass/cat-lets-talk.gif"
+    "type": "video",
+    "thumb": "thumbs/cat-lets-talk.jpg",
+    "blur": "blur/cat-lets-talk.jpg",
+    "full": "video/cat-lets-talk.mp4"
   },
   {
     "name": "good morn cat.mp4",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 3401736,
     "type": "video",
     "thumb": "thumbs/good morn cat.jpg",
     "blur": "blur/good morn cat.jpg",
-    "full": "ass/good morn cat.mp4"
+    "full": "video/good morn cat.mp4"
   },
   {
     "name": "guys-answers-this-v0-q6x6mi80ne7g1.webp",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 5812,
     "type": "image",
     "thumb": "thumbs/guys-answers-this-v0-q6x6mi80ne7g1.webp",
@@ -298,7 +316,7 @@
   },
   {
     "name": "hiragana-chart-by-tofugu.jpg",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 873419,
     "type": "image",
     "thumb": "thumbs/hiragana-chart-by-tofugu.jpg",
@@ -307,11 +325,11 @@
   },
   {
     "name": "huh-what.gif",
-    "date": "2026-02-23T14:47:06",
+    "date": "2026-02-23T16:17:47",
     "size": 528534,
-    "type": "gif",
-    "thumb": "thumbs/huh-what.gif",
-    "blur": "blur/huh-what.gif",
-    "full": "ass/huh-what.gif"
+    "type": "video",
+    "thumb": "thumbs/huh-what.jpg",
+    "blur": "blur/huh-what.jpg",
+    "full": "video/huh-what.mp4"
   }
 ]
