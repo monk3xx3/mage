@@ -187,7 +187,7 @@ function createCard(entry){
     vid.setAttribute('aria-label', entry.name);
     div.appendChild(vid);
   } else {
-    // images and gifs
+    // images
     const img = document.createElement('img');
     img.loading = 'lazy';
     // load tiny blur first, then swap to thumb
@@ -231,7 +231,6 @@ function createCard(entry){
 function detectType(name){
   const e = ext(name);
   if (['mp4','webm','mov','mkv','avi','ogg'].includes(e)) return 'video';
-  if (['gif'].includes(e)) return 'gif';
   return 'image';
 }
 

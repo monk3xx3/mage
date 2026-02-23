@@ -44,7 +44,7 @@ jobs:
           blur
           webp
           video
-        key: gallery-images-${{ hashFiles('ass/**') }}
+        key: gallery-images-${{ hashFiles('thumbs/**', 'blur/**', 'webp/**', 'video/**', 'gallery.json') }}
         restore-keys: |
           gallery-images-
 
@@ -52,6 +52,9 @@ jobs:
       run: |
         set -e
         mkdir -p thumbs blur webp video
+
+        # 20MB limit in bytes
+        MAX_SIZE=20971520
 
         shopt -s nullglob
         files=(ass/*)
@@ -62,6 +65,8 @@ jobs:
         fi
 
         entries=()
+        processed_files=()
+        
         for f in "${files[@]}"; do
           [ -f "$f" ] || continue
           name=$(basename "$f")
@@ -95,48 +100,159 @@ jobs:
               thumb="thumbs/$name"
               blurimg="blur/$name"
               full="webp/$base.webp"
+              processed_files+=("$f")
               ;;
             gif)
-              type="gif"
-              # keep gif as full (animated)
-              if [ ! -f "thumbs/$name" ]; then
-                convert "$f[0]" -strip -resize 600x600\> "thumbs/$name" || echo "thumb-fail:$name"
+              # Convert GIF to MP4 for 80-90% size reduction
+              type="video"
+              
+              # Create thumbnail from first frame
+              if [ ! -f "thumbs/$base.jpg" ]; then
+                convert "$f[0]" -strip -resize 600x600\> "thumbs/$base.jpg" || echo "thumb-fail:$name"
               fi
-              if [ ! -f "blur/$name" ]; then
-                convert "$f[0]" -strip -resize 40x40 -blur 0x6 "blur/$name" || echo "blur-fail:$name"
+              if [ ! -f "blur/$base.jpg" ]; then
+                convert "$f[0]" -strip -resize 40x40 -blur 0x6 "blur/$base.jpg" || echo "blur-fail:$name"
               fi
-              thumb="thumbs/$name"
-              blurimg="blur/$name"
-              full="ass/$name"
+              
+              # Convert GIF to MP4
+              if [ ! -f "video/$base.mp4" ]; then
+                ffmpeg -i "$f" -c:v libx264 -preset fast -crf 23 -pix_fmt yuv420p -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "gif-convert-fail:$name"
+              fi
+              
+              # Check if conversion succeeded
+              if [ -f "video/$base.mp4" ]; then
+                thumb="thumbs/$base.jpg"
+                blurimg="blur/$base.jpg"
+                full="video/$base.mp4"
+                processed_files+=("$f")
+              else
+                echo "::warning file=$f::GIF conversion failed. Skipping."
+              fi
               ;;
             mp4|webm|mov|ogg)
               type="video"
-              # browser-compatible formats - no transcoding needed
+              
+              # Check if file exceeds 20MB
+              if [ "$size" -gt "$MAX_SIZE" ]; then
+                echo "Video $name exceeds 20MB ($size bytes), attempting compression..."
+                
+                # First pass: CRF 28
+                if [ ! -f "video/$base.mp4" ]; then
+                  ffmpeg -i "$f" -c:v libx264 -preset fast -crf 28 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-compress1-fail:$name"
+                fi
+                
+                # Check result size
+                if [ -f "video/$base.mp4" ]; then
+                  new_size=$(stat -c%s "video/$base.mp4")
+                  if [ "$new_size" -gt "$MAX_SIZE" ]; then
+                    echo "First pass result still exceeds 20MB ($new_size bytes), attempting second pass..."
+                    # Second pass: CRF 32 + downscale to 720p
+                    rm -f "video/$base.mp4"
+                    ffmpeg -i "$f" -c:v libx264 -preset fast -crf 32 -vf "scale=-2:min(720\\,ih)" -c:a aac -b:a 96k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-compress2-fail:$name"
+                  fi
+                fi
+                
+                # Final check
+                if [ -f "video/$base.mp4" ]; then
+                  final_size=$(stat -c%s "video/$base.mp4")
+                  if [ "$final_size" -gt "$MAX_SIZE" ]; then
+                    echo "::warning file=$f::Video exceeds 20MB even after compression ($final_size bytes). Skipping."
+                    rm -f "video/$base.mp4"
+                    continue
+                  fi
+                else
+                  echo "::warning file=$f::Video compression failed. Skipping."
+                  continue
+                fi
+                
+                thumb="thumbs/$base.jpg"
+                blurimg="blur/$base.jpg"
+                full="video/$base.mp4"
+              else
+                # Under 20MB - transcode to MP4 for consistency
+                if [ ! -f "video/$base.mp4" ]; then
+                  ffmpeg -i "$f" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-transcode-fail:$name"
+                fi
+                
+                if [ ! -f "video/$base.mp4" ]; then
+                  echo "::warning file=$f::Video transcoding failed. Skipping."
+                  continue
+                fi
+                
+                thumb="thumbs/$base.jpg"
+                blurimg="blur/$base.jpg"
+                full="video/$base.mp4"
+              fi
+              
+              # Generate thumbnail
               if [ ! -f "thumbs/$base.jpg" ]; then
                 ffmpeg -y -i "$f" -vframes 1 -vf "scale='min(600,iw)':'min(600,ih)':force_original_aspect_ratio=decrease" "thumbs/$base.jpg" 2>/dev/null || echo "ff-thumb-fail:$name"
               fi
               if [ ! -f "blur/$base.jpg" ]; then
                 convert "thumbs/$base.jpg" -resize 40x40 -blur 0x6 "blur/$base.jpg" || echo "blur-fail:$name"
               fi
-              thumb="thumbs/$base.jpg"
-              blurimg="blur/$base.jpg"
-              full="ass/$name"
+              
+              processed_files+=("$f")
               ;;
             mkv|avi)
               type="video"
-              # non-browser formats - transcode to MP4 for web playback
-              if [ ! -f "video/$base.mp4" ]; then
-                ffmpeg -i "$f" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-transcode-fail:$name"
+              
+              # Check if file exceeds 20MB
+              if [ "$size" -gt "$MAX_SIZE" ]; then
+                echo "Video $name exceeds 20MB ($size bytes), attempting compression..."
+                
+                # First pass: CRF 28
+                if [ ! -f "video/$base.mp4" ]; then
+                  ffmpeg -i "$f" -c:v libx264 -preset fast -crf 28 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-compress1-fail:$name"
+                fi
+                
+                # Check result size
+                if [ -f "video/$base.mp4" ]; then
+                  new_size=$(stat -c%s "video/$base.mp4")
+                  if [ "$new_size" -gt "$MAX_SIZE" ]; then
+                    echo "First pass result still exceeds 20MB ($new_size bytes), attempting second pass..."
+                    # Second pass: CRF 32 + downscale to 720p
+                    rm -f "video/$base.mp4"
+                    ffmpeg -i "$f" -c:v libx264 -preset fast -crf 32 -vf "scale=-2:min(720\\,ih)" -c:a aac -b:a 96k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-compress2-fail:$name"
+                  fi
+                fi
+                
+                # Final check
+                if [ -f "video/$base.mp4" ]; then
+                  final_size=$(stat -c%s "video/$base.mp4")
+                  if [ "$final_size" -gt "$MAX_SIZE" ]; then
+                    echo "::warning file=$f::Video exceeds 20MB even after compression ($final_size bytes). Skipping."
+                    rm -f "video/$base.mp4"
+                    continue
+                  fi
+                else
+                  echo "::warning file=$f::Video compression failed. Skipping."
+                  continue
+                fi
+              else
+                # Under 20MB - transcode to MP4
+                if [ ! -f "video/$base.mp4" ]; then
+                  ffmpeg -i "$f" -c:v libx264 -preset fast -crf 23 -c:a aac -b:a 128k -movflags +faststart "video/$base.mp4" 2>/dev/null || echo "ff-transcode-fail:$name"
+                fi
+                
+                if [ ! -f "video/$base.mp4" ]; then
+                  echo "::warning file=$f::Video transcoding failed. Skipping."
+                  continue
+                fi
               fi
+              
+              # Generate thumbnail
               if [ ! -f "thumbs/$base.jpg" ]; then
                 ffmpeg -y -i "$f" -vframes 1 -vf "scale='min(600,iw)':'min(600,ih)':force_original_aspect_ratio=decrease" "thumbs/$base.jpg" 2>/dev/null || echo "ff-thumb-fail:$name"
               fi
               if [ ! -f "blur/$base.jpg" ]; then
                 convert "thumbs/$base.jpg" -resize 40x40 -blur 0x6 "blur/$base.jpg" || echo "blur-fail:$name"
               fi
+              
               thumb="thumbs/$base.jpg"
               blurimg="blur/$base.jpg"
               full="video/$base.mp4"
+              processed_files+=("$f")
               ;;
             *)
               # unknown: treat as image fallback
@@ -147,9 +263,13 @@ jobs:
               if [ ! -f "blur/$name" ]; then
                 convert "$f" -strip -resize 40x40 -blur 0x6 "blur/$name" || echo "blur-fail:$name"
               fi
+              if [ ! -f "webp/$base.webp" ]; then
+                convert "$f" -strip -quality 80 "webp/$base.webp" || echo "webp-fail:$name"
+              fi
               thumb="thumbs/$name"
               blurimg="blur/$name"
-              full="ass/$name"
+              full="webp/$base.webp"
+              processed_files+=("$f")
               ;;
           esac
 
@@ -169,12 +289,19 @@ jobs:
         # push array to gallery.json
         printf '%s\n' "${entries[@]}" | jq -s '.' > gallery.json
         echo "Generated gallery.json with $(jq 'length' gallery.json) entries"
+        
+        # Delete processed original files from ass/
+        echo "Deleting ${#processed_files[@]} processed files from ass/..."
+        for f in "${processed_files[@]}"; do
+          rm -f "$f"
+        done
 
     - name: Commit
       run: |
         git config user.name "gallery-bot"
         git config user.email "bot@example.com"
         git add thumbs blur webp video gallery.json
+        git add -u ass/  # Stage deletions
         git diff --staged --quiet && echo "No changes to commit" || {
           git commit -m "update gallery"
           git push
