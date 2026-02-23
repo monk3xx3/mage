@@ -1,19 +1,107 @@
 <!DOCTYPE html>
 <html>
 <head>
-<title>My Image Collection</title>
+<meta charset="UTF-8">
+<title>Gallery</title>
+
 <style>
-body { background:#111; color:white; font-family:sans-serif }
-img { width:200px; margin:5px; border-radius:8px }
+body { margin:0; background:#0b0b0b; color:#eee; font-family:system-ui }
+
+.grid {
+  column-count:4;
+  column-gap:8px;
+  padding:10px;
+}
+
+@media (max-width:1200px){ .grid{ column-count:3 } }
+@media (max-width:800px){ .grid{ column-count:2 } }
+@media (max-width:500px){ .grid{ column-count:1 } }
+
+.card {
+  break-inside:avoid;
+  margin-bottom:8px;
+  position:relative;
+}
+
+.card img {
+  width:100%;
+  border-radius:8px;
+  cursor:pointer;
+  background:#111;
+  transition:.3s;
+}
+
+.viewer {
+  position:fixed;
+  inset:0;
+  background:rgba(0,0,0,.95);
+  display:none;
+  align-items:center;
+  justify-content:center;
+}
+
+.viewer img {
+  max-width:95%;
+  max-height:95%;
+}
 </style>
+
 </head>
 <body>
 
-<h1>Image Collection</h1>
+<div class="grid" id="grid"></div>
 
-<img src="folder/image1.jpg">
-<img src="folder/image2.jpg">
-<img src="folder/image3.jpg">
+<div class="viewer" id="viewer">
+  <img id="full">
+</div>
+
+<script>
+let page=0
+const perPage=40
+let files=[]
+
+fetch('gallery.json')
+.then(r=>r.json())
+.then(data=>{
+  files=data.sort((a,b)=> new Date(b.date)-new Date(a.date))
+  loadMore()
+})
+
+function loadMore(){
+  const grid=document.getElementById('grid')
+  const slice=files.slice(page*perPage,(page+1)*perPage)
+
+  slice.forEach(f=>{
+    const div=document.createElement('div')
+    div.className='card'
+
+    const img=document.createElement('img')
+    img.loading='lazy'
+    img.src='blur/'+f.name
+    img.dataset.src='thumbs/'+f.name
+
+    img.onload=()=> img.src=img.dataset.src
+
+    img.onclick=()=>{
+      viewer.style.display='flex'
+      full.src='webp/'+f.name.replace(/\.\w+$/,'.webp')
+    }
+
+    div.appendChild(img)
+    grid.appendChild(div)
+  })
+
+  page++
+}
+
+window.onscroll=()=>{
+  if(window.innerHeight+window.scrollY>=document.body.offsetHeight-800){
+    loadMore()
+  }
+}
+
+viewer.onclick=()=>viewer.style.display='none'
+</script>
 
 </body>
 </html>

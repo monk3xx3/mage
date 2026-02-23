@@ -1,0 +1,45 @@
+name: Build Gallery
+
+on:
+  push:
+    paths:
+      - 'ass/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Install tools
+      run: sudo apt-get install -y imagemagick jq
+
+    - name: Create thumbs
+      run: |
+        mkdir -p thumbs
+        rm -f gallery.json
+        echo "[" >> gallery.json
+
+        first=true
+        for f in ass/*; do
+          name=$(basename "$f")
+          convert "$f" -resize 400x400 "thumbs/$name"
+
+          if [ "$first" = true ]; then
+            echo "\"$name\"" >> gallery.json
+            first=false
+          else
+            echo ",\"$name\"" >> gallery.json
+          fi
+        done
+
+        echo "]" >> gallery.json
+
+    - name: Commit results
+      run: |
+        git config user.name "gallery-bot"
+        git config user.email "bot@example.com"
+        git add thumbs gallery.json
+        git commit -m "update gallery" || echo "no changes"
+        git push
